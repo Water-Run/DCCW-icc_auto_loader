@@ -1,4 +1,6 @@
-﻿/*
+﻿#define _CRT_SECURE_NO_WARNINGS
+
+/*
  * D_ial.c
  * A small utility for automatically loading the monitor .icc file and setting it as a boot self-starter.
  * Author: WaterRun
@@ -74,43 +76,23 @@ void checkIccFile()
 
 void setAutoStart()
 {
-    HKEY hkey;
-    DWORD result;
-
-    if (RegOpenKeyExA(HKEY_CURRENT_USER, REGISTRY_RUN_PATH, 0, KEY_ALL_ACCESS, &hkey) != ERROR_SUCCESS)
-    {
-        printf("<ERR>CN|无法访问注册表以设置开机自启动 |EN|Failed to access the registry to set auto-start.\n");
-        system("pause");
-        exit(1);
-    }
-
     char exe_path[MAX_PATH];
     GetModuleFileNameA(NULL, exe_path, MAX_PATH);
-    DWORD path_len = strlen(exe_path) + 1;
-    char existing_path[MAX_PATH];
-    DWORD existing_path_len = MAX_PATH;
 
-    if (RegQueryValueExA(hkey, AUTO_START_KEY, NULL, NULL, (LPBYTE)existing_path, &existing_path_len) == ERROR_SUCCESS)
+    char command[MAX_PATH + 50];
+    sprintf(command, "schtasks /create /f /tn \"%s\" /tr \"%s\" /sc onlogon /rl highest", AUTO_START_KEY, exe_path);
+
+    int result = system(command);
+    if (result != 0)
     {
-        if (strcmp(existing_path, exe_path) == 0)
-        {
-            RegCloseKey(hkey);
-            return;
-        }
-    }
-
-    result = RegSetValueExA(hkey, AUTO_START_KEY, 0, REG_SZ, (const BYTE*)exe_path, path_len);
-    RegCloseKey(hkey);
-
-    if (result != ERROR_SUCCESS)
-    {
-        printf("<ERR>CN|无法写入注册表以设置开机自启动 |EN|Failed to write to the registry to set auto-start.\n");
+        printf("<ERR>CN|无法创建任务计划以设置开机自启动 |EN|Failed to create a scheduled task for auto-start.\n");
         system("pause");
         exit(1);
     }
 
-    printf("<D_ial>(CN)已设置开机自启动 (EN)has been set to boot up.\n");
+    printf("<D_ial>(CN)已设置开机自启动 (EN)has been set to boot up with admin privileges.\n");
 }
+
 
 void loadIccFile()
 {
